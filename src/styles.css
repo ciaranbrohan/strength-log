@@ -160,6 +160,8 @@ label.label { display: block; font-size: 0.85rem; color: var(--muted); margin-bo
 .exercise-card { padding: 12px; }
 .exercise-head { display: flex; align-items: flex-start; gap: 4px; }
 .last-time { font-size: 0.85rem; color: var(--muted); margin: 2px 0 10px; }
+.target { font-size: 0.85rem; color: var(--muted); margin: 2px 0 0; }
+.target strong { color: var(--accent); font-weight: 600; }
 .last-time strong { color: var(--text); font-weight: 600; }
 
 .set-grid {
@@ -237,3 +239,5 @@ label.label { display: block; font-size: 0.85rem; color: var(--muted); margin-bo
 .stat { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .error { color: var(--danger); font-size: 0.9rem; }
 .recharts-wrapper:focus, .recharts-surface:focus, .recharts-wrapper *:focus { outline: none; }
+.target-input { min-height: 36px; font-size: 0.95rem; width: 64px; }
+.target-input.grow { width: auto; }

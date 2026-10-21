@@ -71,3 +71,14 @@ describe('toCsv', () => {
     ]);
   });
 });
+
+describe('validateBackup targets', () => {
+  it('accepts templates with targets', () => {
+    const b = { ...good, templates: [{ id: 't1', name: 'Push', exerciseIds: ['e1'], targets: { e1: { sets: 5, reps: '4' } } }] };
+    expect(validateBackup(b).ok).toBe(true);
+  });
+  it('rejects malformed targets', () => {
+    const b = { ...good, templates: [{ id: 't1', name: 'Push', exerciseIds: ['e1'], targets: { e1: { sets: '5', reps: 4 } } }] };
+    expect(validateBackup(b).ok).toBe(false);
+  });
+});

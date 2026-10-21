@@ -12,8 +12,15 @@ const optional = <T>(v: unknown, check: (v: unknown) => v is T) => v === undefin
 
 const validExercise = (e: unknown) => isObj(e) && isStr(e.id) && isStr(e.name) && optional(e.archived, (v): v is boolean => typeof v === 'boolean');
 
+const validTarget = (v: unknown) => isObj(v) && isNum(v.sets) && isStr(v.reps);
+
 const validTemplate = (t: unknown) =>
-  isObj(t) && isStr(t.id) && isStr(t.name) && Array.isArray(t.exerciseIds) && t.exerciseIds.every(isStr);
+  isObj(t) &&
+  isStr(t.id) &&
+  isStr(t.name) &&
+  Array.isArray(t.exerciseIds) &&
+  t.exerciseIds.every(isStr) &&
+  (t.targets === undefined || (isObj(t.targets) && Object.values(t.targets).every(validTarget)));
 
 const validSet = (s: unknown) => isObj(s) && isNum(s.weightKg) && isNum(s.reps) && typeof s.done === 'boolean';
 

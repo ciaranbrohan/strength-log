@@ -4,7 +4,8 @@ import { db } from '../db/db';
 import { getLastSessionFor } from '../db/queries';
 import { nextSet, prefilledEntry } from '../db/actions';
 import { formatDate, formatSets } from '../lib/format';
-import type { SetEntry, Workout, WorkoutEntry } from '../types';
+import { formatTarget } from '../lib/target';
+import type { SetEntry, TemplateTarget, Workout, WorkoutEntry } from '../types';
 import ExercisePicker from './ExercisePicker';
 import NumField from './NumField';
 
@@ -21,10 +22,14 @@ function save(workout: Workout, change: (w: Workout) => void) {
 export default function WorkoutEditor({ workout }: { workout: Workout }) {
   const [picking, setPicking] = useState(false);
   const names = useLiveQuery(async () => new Map((await db.exercises.toArray()).map((e) => [e.id, e.name])), []);
+  const targets = useLiveQuery(
+    async () => (workout.templateId ? (await db.templates.get(workout.templateId))?.targets : undefined),
+    [workout.templateId],
+  );
 
   const addExercise = async (exerciseId: string) => {
     setPicking(false);
-    const entry = await prefilledEntry(exerciseId, workout.id);
+    const entry = await prefilledEntry(exerciseId, workout.id, targets?.[exerciseId]);
     await save(workout, (w) => w.entries.push(entry));
   };
 
@@ -37,6 +42,7 @@ export default function WorkoutEditor({ workout }: { workout: Workout }) {
           entry={entry}
           index={i}
           name={names?.get(entry.exerciseId) ?? '…'}
+          target={targets?.[entry.exerciseId]}
         />
       ))}
 
@@ -73,9 +79,10 @@ interface EntryProps {
   entry: WorkoutEntry;
   index: number;
   name: string;
+  target?: TemplateTarget;
 }
 
-function EntryCard({ workout, entry, index, name }: EntryProps) {
+function EntryCard({ workout, entry, index, name, target }: EntryProps) {
   const last = useLiveQuery(
     () => getLastSessionFor(entry.exerciseId, workout.id).then((l) => l ?? null),
     [entry.exerciseId, workout.id],
@@ -115,6 +122,11 @@ function EntryCard({ workout, entry, index, name }: EntryProps) {
           ✕
         </button>
       </div>
+      {target && (
+        <p className="target">
+          Target <strong>{formatTarget(target)}</strong>
+        </p>
+      )}
       <p className="last-time">
         {last === undefined ? ' ' : last ? (
           <>

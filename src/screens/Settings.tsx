@@ -2,7 +2,10 @@ import { useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { exportAll, importAll } from '../db/queries';
+import { addPack } from '../db/packs';
 import ExercisePicker from '../components/ExercisePicker';
+import NumField from '../components/NumField';
+import { PACKS } from '../lib/packs';
 import { toCsv, validateBackup } from '../lib/backup';
 import { newId } from '../lib/id';
 import { formatDate, todayIso } from '../lib/format';
@@ -63,7 +66,45 @@ export default function Settings() {
       <button className="btn btn-block" style={{ marginTop: 8 }} onClick={createTemplate}>
         + New template
       </button>
+      <PacksSection />
       <DataSection />
+    </>
+  );
+}
+
+function PacksSection() {
+  const [message, setMessage] = useState<string | null>(null);
+
+  const add = async (packId: string) => {
+    const pack = PACKS.find((p) => p.id === packId)!;
+    const { added, skipped } = await addPack(pack);
+    setMessage(
+      [added.length && `Added ${added.join(' and ')}.`, skipped.length && `Already had ${skipped.join(' and ')}.`]
+        .filter(Boolean)
+        .join(' '),
+    );
+  };
+
+  return (
+    <>
+      <h2>Program templates</h2>
+      <ul className="list">
+        {PACKS.map((p) => (
+          <li key={p.id} className="card">
+            <div className="spread">
+              <span>
+                <strong>{p.name}</strong>
+                <br />
+                <span className="muted small">{p.templates.map((t) => t.name).join(' · ')}</span>
+              </span>
+              <button className="btn btn-sm" onClick={() => add(p.id)}>
+                Add
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+      {message && <p className="muted small">{message}</p>}
     </>
   );
 }
@@ -150,6 +191,17 @@ function TemplateEditor({ template, onBack }: { template: Template; onBack: () =
 
   const setIds = (exerciseIds: string[]) => db.templates.update(template.id, { exerciseIds });
 
+  const setTarget = (exerciseId: string, patch: { sets?: number; reps?: string }) => {
+    const current = template.targets?.[exerciseId] ?? { sets: 3, reps: '' };
+    const targets = { ...template.targets, [exerciseId]: { ...current, ...patch } };
+    return db.templates.update(template.id, { targets });
+  };
+
+  const removeExercise = (exerciseId: string) => {
+    const { [exerciseId]: _removed, ...targets } = template.targets ?? {};
+    return db.templates.update(template.id, { exerciseIds: template.exerciseIds.filter((x) => x !== exerciseId), targets });
+  };
+
   const move = (i: number, delta: number) => {
     const ids = [...template.exerciseIds];
     const [item] = ids.splice(i, 1);
@@ -177,17 +229,38 @@ function TemplateEditor({ template, onBack }: { template: Template; onBack: () =
       {!template.exerciseIds.length && <p className="muted small">Add the exercises this session usually includes.</p>}
       <ul className="list">
         {template.exerciseIds.map((id, i) => (
-          <li key={id} className="card row" style={{ padding: '4px 4px 4px 14px' }}>
-            <span className="grow">{names?.get(id) ?? '…'}</span>
-            <button className="icon-btn" aria-label="Move up" disabled={i === 0} onClick={() => move(i, -1)}>
-              ↑
-            </button>
-            <button className="icon-btn" aria-label="Move down" disabled={i === template.exerciseIds.length - 1} onClick={() => move(i, 1)}>
-              ↓
-            </button>
-            <button className="icon-btn" aria-label="Remove" onClick={() => setIds(template.exerciseIds.filter((x) => x !== id))}>
-              ✕
-            </button>
+          <li key={id} className="card" style={{ padding: '4px 4px 10px 14px' }}>
+            <div className="row">
+              <span className="grow">{names?.get(id) ?? '…'}</span>
+              <button className="icon-btn" aria-label="Move up" disabled={i === 0} onClick={() => move(i, -1)}>
+                ↑
+              </button>
+              <button className="icon-btn" aria-label="Move down" disabled={i === template.exerciseIds.length - 1} onClick={() => move(i, 1)}>
+                ↓
+              </button>
+              <button className="icon-btn" aria-label="Remove" onClick={() => removeExercise(id)}>
+                ✕
+              </button>
+            </div>
+            <div className="row small" style={{ paddingRight: 10 }}>
+              <span className="muted">Target</span>
+              <NumField
+                className="set-input target-input"
+                integer
+                value={template.targets?.[id]?.sets}
+                placeholder="sets"
+                ariaLabel="Target sets"
+                onChange={(v) => setTarget(id, { sets: v ?? 0 })}
+              />
+              <span className="muted">×</span>
+              <input
+                className="set-input target-input grow"
+                placeholder="reps, e.g. 8-12"
+                aria-label="Target reps"
+                defaultValue={template.targets?.[id]?.reps ?? ''}
+                onBlur={(e) => setTarget(id, { reps: e.target.value.trim() })}
+              />
+            </div>
           </li>
         ))}
       </ul>

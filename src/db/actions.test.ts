@@ -63,3 +63,18 @@ describe('startWorkout', () => {
     expect(w?.entries).toEqual([]);
   });
 });
+
+describe('targets', () => {
+  it('prefills target sets for a first-time exercise', async () => {
+    const e = await prefilledEntry('squat', undefined, { sets: 3, reps: '9-12' });
+    expect(e.sets).toEqual([0, 1, 2].map(() => ({ weightKg: 0, reps: 9, done: false })));
+  });
+  it('still prefers last session over the target', async () => {
+    const e = await prefilledEntry('bench', undefined, { sets: 5, reps: '4' });
+    expect(e.sets).toHaveLength(2);
+  });
+  it('startWorkout passes template targets through', async () => {
+    const id = await startWorkout({ id: 't', name: 'L', exerciseIds: ['squat'], targets: { squat: { sets: 5, reps: '4' } } });
+    expect((await db.workouts.get(id))?.entries[0].sets).toHaveLength(5);
+  });
+});

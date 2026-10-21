@@ -4,10 +4,18 @@ export interface Exercise {
   archived?: boolean;
 }
 
+export interface TemplateTarget {
+  sets: number;
+  /** Free text from the program, e.g. "4", "9-12", "11/11", "4, last AMRAP". */
+  reps: string;
+}
+
 export interface Template {
   id: string;
   name: string;
   exerciseIds: string[];
+  /** Target sets × reps, keyed by exercise id. */
+  targets?: Record<string, TemplateTarget>;
 }
 
 export interface SetEntry {
